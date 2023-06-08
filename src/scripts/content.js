@@ -43,9 +43,24 @@ function letFilterImages(imageAlbumElement) {
         }
     });
     const link = document.createElement('a');
-    link.href = imgElements[1].src;
+    const img = imgElements[1];
+    link.href = img.src;
     link.download = 'image.jpg';
-    link.click();
+    //link.click();
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    context.drawImage(img, 0, 0);
+
+    const dataURL = canvas.toDataURL('image/png'); // 'image/png' for PNG format, 'image/jpeg' for JPEG format
+
+    const imageData = dataURL.replace(/^data:image\/(png|jpeg);base64,/, '');
+
+    sendImageToService(imageData);
 
     /*    const forward = imageAlbumElement.querySelector('[data-testid="forward-chat"]')
     if (forward){
@@ -64,15 +79,55 @@ function letFilterImages(imageAlbumElement) {
 */
 }
 
+function sendImageToService(image) {
+    const byteCharacters = atob(image);
+    const byteArrays = [];
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteArrays.push(byteCharacters.charCodeAt(i));
+    }
+    const blob = new Blob([new Uint8Array(byteArrays)], {type: 'image/png'});
+    const formData = new FormData();
+    formData.append('image', blob, 'image.png');
+
+
+    fetch('http://127.0.0.1:5000/upload', {
+        method: 'POST',
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            return response.text();
+        } else {
+            throw new Error('Failed to send image');
+        }
+    }).then(responseText => {
+        console.log('Response:', responseText);
+    }).catch(error => {
+            console.error('Error:', error);
+    });
+}
+
 function createButtonElement(imageAlbumElement) {
     const filterButton = document.createElement("button");
     filterButton.innerText = "Filter";
+    filterButton.id = "filter-btn";
     filterButton.addEventListener("click", () => onFilter(imageAlbumElement))
-    filterButton.style.border = "5px solid green";
+    filterButton.style.border = "3px solid green";
     filterButton.style.background = "#c9fc9f";
     filterButton.style.color = "#276001";
-    filterButton.style.height = "30px";
+    filterButton.style.height = "50px";
     filterButton.style.width = "100px";
+    filterButton.style.marginRight = "100px";
+
+    filterButton.addEventListener('mouseover', function () {
+        this.style.transition = 'background-color 1s, color 0.5s';
+        this.style.backgroundColor = '#0b9b0b';
+        this.style.color = '#dff8df';
+    })
+    filterButton.addEventListener('mouseout', function () {
+        this.style.transition = 'background-color 0.5s, color 0.5s';
+        this.style.background = "#c9fc9f";
+        this.style.color = "#276001";
+    });
     return filterButton;
 }
 
