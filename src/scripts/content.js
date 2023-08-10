@@ -13,19 +13,42 @@ const observer = new MutationObserver((mutationsList) => {
     }
 });
 
+
+
 const observerConfig = {childList: true, subtree: true};
 observer.observe(document.body, observerConfig);
 
 function onNewChatOpened(conversationPanelWrapper) {
     console.log("New chat opened!");
-    insertFilterButton(conversationPanelWrapper)
+    scanChatForAlbums(conversationPanelWrapper).then(albums => {
+        Array.from(albums).forEach(album => {
+            createFilterButton(album)
+        })
+    })
 }
 
-function insertFilterButton(conversationPanelWrapper) {
-    const imageAlbumElement = conversationPanelWrapper.querySelector('[data-testid="image-album"]');
-    const filterButton = createButtonElement(imageAlbumElement);
-    if (imageAlbumElement) {
-        imageAlbumElement.insertAdjacentElement("beforeend", filterButton)
+const scanChatForAlbums = (conversationPanelWrapper) => {
+    const msgSelectorAll = '[data-testid="image-album"]';
+    return waitForNodes(conversationPanelWrapper, msgSelectorAll);
+}
+
+const waitForNodes = (parentNode, selector) => {
+    return new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+            const element = parentNode.querySelectorAll(selector);
+            if (element) {
+                clearInterval(interval);
+                resolve(element);
+            }
+        }, 1000);
+    });
+}
+
+function createFilterButton(albumElement) {
+    //const imageAlbumElement = conversationPanelWrapper.querySelector('[data-testid="image-album"]');
+    const filterButton = createButtonElement(albumElement);
+    if (albumElement) {
+        albumElement.appendChild(filterButton)
     }
 }
 
