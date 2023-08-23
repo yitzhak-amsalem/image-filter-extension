@@ -3,7 +3,7 @@ const observer = new MutationObserver((mutationsList) => {
         if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
             const addedNodes = Array.from(mutation.addedNodes);
             const newChatNodes = addedNodes.filter(node =>
-                node.getAttribute && node.getAttribute("data-testid") === "conversation-panel-wrapper"
+                node.getAttribute && node.getAttribute("id") === "main"
             );
             if (newChatNodes.length > 0) {
                 const conversationPanelWrapper = newChatNodes[0];
@@ -12,7 +12,6 @@ const observer = new MutationObserver((mutationsList) => {
         }
     }
 });
-
 
 
 const observerConfig = {childList: true, subtree: true};
@@ -28,7 +27,7 @@ function onNewChatOpened(conversationPanelWrapper) {
 }
 
 const scanChatForAlbums = (conversationPanelWrapper) => {
-    const msgSelectorAll = '[data-testid="image-album"]';
+    const msgSelectorAll = '[data-id^="album-true"], [data-id^="album-false"]';
     return waitForNodes(conversationPanelWrapper, msgSelectorAll);
 }
 
