@@ -13,7 +13,6 @@ const observer = new MutationObserver((mutationsList) => {
     }
 });
 
-
 const observerConfig = {childList: true, subtree: true};
 observer.observe(document.body, observerConfig);
 
@@ -44,7 +43,6 @@ const waitForNodes = (parentNode, selector) => {
 }
 
 function createFilterButton(albumElement) {
-    //const imageAlbumElement = conversationPanelWrapper.querySelector('[data-testid="image-album"]');
     const filterButton = createButtonElement(albumElement);
     if (albumElement) {
         albumElement.appendChild(filterButton)
@@ -52,74 +50,87 @@ function createFilterButton(albumElement) {
 }
 
 function onFilter(imageAlbumElement) {
-    alert("Filter!!!")
-    letsFilterImages(imageAlbumElement);
+    handleFiltering(imageAlbumElement);
 }
 
-function letsFilterImages(imageAlbumElement) {
-    const imgElements = extractImageFiles(imageAlbumElement);
+async function handleFiltering(imageAlbumElement) {
+    const imgElements = await extractImageFiles(imageAlbumElement)
     console.log("images length:", imgElements.length)
     sendImageArrToService(imgElements);
 }
 
-async function sendImageArrToService(imageArr) {
-    /*   const formData = new FormData();
-       Array.from(imageArr).forEach((image, index) => {
-           formData.append(`image_${index}`, imageUrlToFile(image.src))
-       });*/
-
-//    imageUrlToFile(imageArr[0].src)
-    imageArrUrlToFiles(imageArr)
-    /*fetch('http://127.0.0.1:5000/upload', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({images: base64Images})
-    }).then(response => {
-        if (response.ok) {
-            return response.text();
-        } else {
-            throw new Error('Failed to send image');
-        }
-    }).then(responseText => {
-        console.log('Response:', responseText);
-    }).catch(error => {
-        console.error('Error:', error);
-    });*/
-
-//    const imageFile = imageToFile(image)
-//    formData.append('image', imageFile, 'image.png');
+async function extractImageFiles(imageAlbumElement) {
+    const imgElements = [];
+    const albumSize = parseAlbumSize(imageAlbumElement);
+    const buttonSelector = imageAlbumElement.querySelector('[role="button"]');
+    buttonSelector.click();
+    getCurrentImg(imgElements);
+    await sleep(400)
+    const nextButton = document.body.querySelector('[aria-label="הבא"][role="button"]');
+    for (let i = 1; i < albumSize; i++) {
+        nextButton.click();
+        getCurrentImg(imgElements);
+        await sleep(400)
+    }
+    return imgElements;
 }
 
-function imageArrUrlToFiles(imageElements){
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function parseAlbumSize(imageAlbumElement) {
+    const albumId = imageAlbumElement.getAttribute('data-id');
+    const albumIdParts = albumId.split('-');
+    const lastPart = albumIdParts[albumIdParts.length - 1];
+    const match = lastPart.match(/\d+/);
+    if (match) {
+        return parseInt(match[0]);
+    } else {
+        console.log("No number found.");
+    }
+}
+
+function getCurrentImg(imgElements) {
+    setTimeout(() => {
+        const currentImgElement = document.body.querySelector('[role="img"]');
+        const imgSrc = currentImgElement.querySelectorAll("img")[1]
+        imgElements.push(imgSrc);
+    }, 300);
+}
+
+async function sendImageArrToService(imageArr) {
+    imageArrUrlToFiles(imageArr)
+}
+
+function imageArrUrlToFiles(imageElements) {
     Promise.all(
         imageElements.map((img, index) =>
             fetch(img.src)
                 .then(response => response.arrayBuffer())
                 .then(buffer => {
                     const base64Image = arrayBufferToBase64(buffer);
-                    return { index, image: base64Image };
+                    return {index, image: base64Image};
                 })
         )
     ).then(imagesWithIndexes => {
-            fetch('http://127.0.0.1:5000/upload', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ images: imagesWithIndexes })
-            }).then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('Failed to send image');
-                }
-            }).then(responseText => {
-                console.log('Response:', responseText);
-            }).catch(error => {
-                console.error('Error:', error);
-            });
+        fetch('http://127.0.0.1:5000/upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({images: imagesWithIndexes})
+        }).then(response => {
+            if (response.ok) {
+                return response.text();
+            } else {
+                throw new Error('Failed to send image');
+            }
+        }).then(responseText => {
+            console.log('Response:', responseText);
+        }).catch(error => {
+            console.error('Error:', error);
+        });
     });
 }
 
@@ -136,7 +147,7 @@ function imageUrlToFile(imageUrls) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ image: base64Image })
+                body: JSON.stringify({image: base64Image})
             })
                 .then(response => {
                     // Handle the response from the server
@@ -146,11 +157,6 @@ function imageUrlToFile(imageUrls) {
                     console.error('Error uploading image:', error);
                 });
         });
-}
-
-function extractImageFiles(imageAlbumElement) {
-    const imgElements = Array.from(imageAlbumElement.querySelectorAll("img"));
-    return imgElements.filter((imgElement) => imgElement.src.includes("whatsapp"));
 }
 
 function createButtonElement(imageAlbumElement) {
