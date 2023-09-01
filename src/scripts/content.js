@@ -73,8 +73,8 @@ async function handleFiltering(imageAlbumElement) {
 async function extractImageFiles(imageAlbumElement) {
     const imgElements = [];
     const albumSize = parseAlbumSize(imageAlbumElement);
-    const buttonSelector = imageAlbumElement.querySelector('[role="button"]');
-    buttonSelector.click();
+    const buttonSelector = imageAlbumElement.querySelectorAll('[role="button"]');
+    buttonSelector.length === 1 ? buttonSelector[0].click() : buttonSelector[1].click();
     getCurrentImg(imgElements);
     await sleep(400)
     const nextButton = document.body.querySelector('[aria-label="הבא"][role="button"]');
@@ -105,8 +105,10 @@ function parseAlbumSize(imageAlbumElement) {
 function getCurrentImg(imgElements) {
     setTimeout(() => {
         const currentImgElement = document.body.querySelector('[role="img"]');
-        const imgSrc = currentImgElement.querySelectorAll("img")[1]
-        imgElements.push(imgSrc);
+        if (currentImgElement){
+            const imgSrc = currentImgElement.querySelectorAll("img")[1]
+            imgElements.push(imgSrc);
+        }
     }, 300);
 }
 
