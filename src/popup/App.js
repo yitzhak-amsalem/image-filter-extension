@@ -1,64 +1,77 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 
 function App() {
-    const [image1, setImage1] = useState(null);
-    const [image2, setImage2] = useState(null);
-    const [result, setResult] = useState(null);
 
-    const handleImage1Upload = (event) => {
-        const file = event.target.files[0];
-        setImage1(URL.createObjectURL(file));
-    };
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [uploadedImages, setUploadedImages] = useState([]);
+    const [success, setSuccess] = useState(false);
 
-    const handleImage2Upload = (event) => {
-        const file = event.target.files[0];
-        setImage2(URL.createObjectURL(file));
-    };
+    const handleFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        setSelectedFiles(files);
 
-    const handleSubmit = async () => {
-        if (!image1 || !image2) {
-            alert('Please select both images.');
-            return;
-        }
+        const imageUrls = files.map((file) => URL.createObjectURL(file));
+        setUploadedImages(imageUrls);
 
-        const formData = new FormData();
-        formData.append('image1', image1);
-        formData.append('image2', image2);
-
-        try {
-            const response = await fetch('http://localhost:5000/api/face-check', {
-                method: 'POST',
-                body: formData,
-                mode: 'no-cors'
+        const imagePromises = files.map((file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    resolve(e.target.result);
+                };
+                reader.readAsDataURL(file);
             });
+        });
 
-            if (response.ok) {
-                const data = await response.json();
-                setResult(data.result);
-                alert("YES! " + data.result)
-            } else {
-                alert('Face check failed. Please try again.');
-            }
-        } catch (error) {
-            alert('An error occurred. Please try again later.');
-        }
+        Promise.all(imagePromises).then((base64Images) => {
+            setUploadedImages(base64Images);
+        });
+
+
     };
+    const saveImages = () => {
+        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+            const dataToSend = {"model": uploadedImages};
+            chrome.tabs.sendMessage(tabs[0].id, {data: dataToSend}, function (response) {
+                if (response) {
+                    console.log(response);
+                    setSuccess(true)
+                } else {
+                    console.log('Error! No response from content script');
+                }
+            });
+        });
+    }
 
     return (
         <div>
-            <h1>Face Checker</h1>
+            <h1>Face Model</h1>
             <div>
-                <h2>Image 1</h2>
-                <input type="file" accept="image/*" onChange={handleImage1Upload} />
-                {image1 && <img width={"60px"} height={"60px"} src={image1} alt="Image 1" />}
+                <h2>Upload Your Images</h2>
+                <input type="file" multiple accept="image/*" onChange={handleFileChange}/>
+                {
+                    uploadedImages.length > 0 &&
+                    <div>
+                        {
+                            uploadedImages.map((url, index) => (
+                                <li key={index}>
+                                    <img src={url} alt={`Uploaded ${index}`} width={"30px"} height={"30px"}/>
+                                </li>
+                            ))
+                        }
+                    </div>
+                }
             </div>
-            <div>
-                <h2>Image 2</h2>
-                <input type="file" accept="image/*" onChange={handleImage2Upload} />
-                {image2 && <img width={"60px"} height={"60px"} src={image2} alt="Image 2" />}
-            </div>
-            <button onClick={handleSubmit}>Check Face</button>
-            {result && <div>{result ? 'Face is present in both images.' : 'Face is not present in both images.'}</div>}
+
+            <button onClick={saveImages}>Save Face Model</button>
+
+            {
+                success &&
+                <div>
+                    Success!
+                </div>
+            }
+
         </div>
     );
 }
