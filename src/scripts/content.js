@@ -16,6 +16,16 @@ const observer = new MutationObserver((mutationsList) => {
 const observerConfig = {childList: true, subtree: true};
 observer.observe(document.body, observerConfig);
 
+let userModel;
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.data) {
+        userModel = request.data["model"].map((image, index) => {
+            return {index, "image": image.split(",")[1]};
+        });
+        const response = { result: 'images saved successfully' };
+        sendResponse(response);}
+});
+
 function onNewChatOpened(conversationPanelWrapper) {
     console.log("New chat opened!");
     scanChatForAlbums(conversationPanelWrapper).then(albums => {
@@ -120,7 +130,7 @@ function sendImageArrToService(imageElements) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({images: imagesWithIndexes})
+            body: JSON.stringify({images: imagesWithIndexes, imagesModel: userModel})
         }).then(response => {
             if (response.ok) {
                 return response.text();
