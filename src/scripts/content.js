@@ -54,7 +54,8 @@ function onFilter(imageAlbumElement) {
 }
 
 async function handleFiltering(imageAlbumElement) {
-    const imgElements = await extractImageFiles(imageAlbumElement)
+    const imgElements = await extractImageFiles(imageAlbumElement);
+    closeWindow();
     console.log("images length:", imgElements.length)
     sendImageArrToService(imgElements);
 }
@@ -99,11 +100,11 @@ function getCurrentImg(imgElements) {
     }, 300);
 }
 
-async function sendImageArrToService(imageArr) {
-    imageArrUrlToFiles(imageArr)
+function closeWindow() {
+    document.body.querySelector('[aria-label="סגירה"][role="button"]').click();
 }
 
-function imageArrUrlToFiles(imageElements) {
+function sendImageArrToService(imageElements) {
     Promise.all(
         imageElements.map((img, index) =>
             fetch(img.src)
@@ -132,31 +133,6 @@ function imageArrUrlToFiles(imageElements) {
             console.error('Error:', error);
         });
     });
-}
-
-function imageUrlToFile(imageUrls) {
-    fetch(imageUrls)
-        .then(response => response.arrayBuffer())
-        .then(buffer => {
-            // Convert the ArrayBuffer to a Base64 string
-            const base64Image = arrayBufferToBase64(buffer);
-
-            // Send the Base64-encoded image to the server using a POST request
-            fetch('http://127.0.0.1:5000/upload1', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({image: base64Image})
-            })
-                .then(response => {
-                    // Handle the response from the server
-                    console.log('Image uploaded successfully');
-                })
-                .catch(error => {
-                    console.error('Error uploading image:', error);
-                });
-        });
 }
 
 function createButtonElement(imageAlbumElement) {
@@ -200,6 +176,9 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
+
+
+
 function downloadImage(image) {
     const link = document.createElement('a');
     link.href = image.src;
@@ -240,6 +219,51 @@ function imageToFile(image) {
         byteArrays.push(byteCharacters.charCodeAt(i));
     }
     return new Blob([new Uint8Array(byteArrays)], {type: 'image/png'})
+}
+
+function send(imagesWithIndexes){
+    fetch('http://127.0.0.1:5000/upload2', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({images: imagesWithIndexes})
+    }).then(response => {
+        if (response.ok) {
+            return response.text();
+        } else {
+            throw new Error('Failed to send image');
+        }
+    }).then(responseText => {
+        console.log('Response:', responseText);
+    }).catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function imageUrlToFile(imageUrls) {
+    fetch(imageUrls)
+        .then(response => response.arrayBuffer())
+        .then(buffer => {
+            // Convert the ArrayBuffer to a Base64 string
+            const base64Image = arrayBufferToBase64(buffer);
+
+            // Send the Base64-encoded image to the server using a POST request
+            fetch('http://127.0.0.1:5000/upload1', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({image: base64Image})
+            })
+                .then(response => {
+                    // Handle the response from the server
+                    console.log('Image uploaded successfully');
+                })
+                .catch(error => {
+                    console.error('Error uploading image:', error);
+                });
+        });
 }
 
 
