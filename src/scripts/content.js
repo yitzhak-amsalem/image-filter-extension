@@ -161,30 +161,33 @@ function imageUrlToFile(imageUrls) {
 
 function createButtonElement(imageAlbumElement) {
     const filterButton = document.createElement("button");
-    filterButton.innerText = "Filter";
+    filterButton.innerText = "Filter Album";
     filterButton.id = "filter-btn";
     filterButton.addEventListener("click", () => onFilter(imageAlbumElement))
-    filterButton.style.border = "3px solid green";
-    filterButton.style.background = "#c9fc9f";
-    filterButton.style.color = "#276001";
-    filterButton.style.height = "70px";
-    filterButton.style.width = "120px";
-    filterButton.style.marginRight = "100px";
+    filterButton.style.backgroundColor = "#cffdaa";
+    filterButton.style.color = "#27540a";
+    filterButton.style.height = "auto";
+    filterButton.style.width = "auto";
+    filterButton.style.margin = "5px 80px 5px 0";
     filterButton.style.fontFamily = 'Chivo Mono, monospace';
-    filterButton.style.borderRadius = "10px";
-    filterButton.style.fontSize = "1.5em";
+    filterButton.style.fontSize = "1.2em";
+    filterButton.style.padding = "8px 16px";
+    filterButton.style.border = "none";
+    filterButton.style.borderRadius = "5px";
+    filterButton.style.cursor = "pointer";
+    filterButton.style.boxShadow = "0px 4px 6px rgba(0, 0, 0, 0.1)";
 
-    filterButton.addEventListener('mouseover', function () {
-        this.style.transition = 'background-color 1s, color 0.5s';
-        this.style.backgroundColor = '#0b9b0b';
-        this.style.color = '#dff8df';
-    })
-    filterButton.addEventListener('mouseout', function () {
-        this.style.transition = 'background-color 0.5s, color 0.5s';
-        this.style.background = "#c9fc9f";
-        this.style.color = "#276001";
+    filterButton.addEventListener('mouseover', () => {
+        filterButton.style.transition = 'background-color 1s';
+        filterButton.style.backgroundColor = 'rgba(166,252,99,0.9)';
     });
+    filterButton.addEventListener('mouseout', () => {
+        filterButton.style.transition = 'background-color 0.5s';
+        filterButton.style.backgroundColor = "#cffdaa";
+    });
+
     return filterButton;
+
 }
 
 function arrayBufferToBase64(buffer) {
