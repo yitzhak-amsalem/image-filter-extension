@@ -17,13 +17,23 @@ const observerConfig = {childList: true, subtree: true};
 observer.observe(document.body, observerConfig);
 
 let userModel;
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+let userData;
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+    const response = {result: undefined, modelFiles: undefined};
     if (request.data) {
         userModel = request.data["model"].map((image, index) => {
             return {index, "image": image.split(",")[1]};
         });
-        const response = { result: 'images saved successfully' };
-        sendResponse(response);}
+        userData = request.data["model"];
+        response["result"] = 'Images saved successfully';
+    } else if (request.ping) {
+        if (userData) {
+            response["result"] = 'Model exists';
+            response["modelFiles"] = userData;
+        }
+    }
+    sendResponse(response);
 });
 
 function onNewChatOpened(conversationPanelWrapper) {
@@ -60,7 +70,11 @@ function createFilterButton(albumElement) {
 }
 
 function onFilter(imageAlbumElement) {
-    handleFiltering(imageAlbumElement);
+    if (userModel) {
+        handleFiltering(imageAlbumElement);
+    } else {
+        alert("Add face model by popup")
+    }
 }
 
 async function handleFiltering(imageAlbumElement) {
@@ -74,14 +88,14 @@ async function extractImageFiles(imageAlbumElement) {
     const imgElements = [];
     const albumSize = parseAlbumSize(imageAlbumElement);
     const buttonSelector = imageAlbumElement.querySelectorAll('[role="button"]');
-    buttonSelector.length === 1 ? buttonSelector[0].click() : buttonSelector[1].click();
+    buttonSelector[0].ariaLabel.includes("פרטי הצ'אט") ? buttonSelector[1].click() : buttonSelector[0].click();
     getCurrentImg(imgElements);
-    await sleep(400)
+    await sleep(550)
     const nextButton = document.body.querySelector('[aria-label="הבא"][role="button"]');
     for (let i = 1; i < albumSize; i++) {
         nextButton.click();
         getCurrentImg(imgElements);
-        await sleep(400)
+        await sleep(550)
     }
     return imgElements;
 }
@@ -105,11 +119,11 @@ function parseAlbumSize(imageAlbumElement) {
 function getCurrentImg(imgElements) {
     setTimeout(() => {
         const currentImgElement = document.body.querySelector('[role="img"]');
-        if (currentImgElement){
+        if (currentImgElement) {
             const imgSrc = currentImgElement.querySelectorAll("img")[1]
             imgElements.push(imgSrc);
         }
-    }, 300);
+    }, 500);
 }
 
 function closeWindow() {
@@ -189,8 +203,6 @@ function arrayBufferToBase64(buffer) {
 }
 
 
-
-
 function downloadImage(image) {
     const link = document.createElement('a');
     link.href = image.src;
@@ -233,7 +245,7 @@ function imageToFile(image) {
     return new Blob([new Uint8Array(byteArrays)], {type: 'image/png'})
 }
 
-function send(imagesWithIndexes){
+function send(imagesWithIndexes) {
     fetch('http://127.0.0.1:5000/upload2', {
         method: 'POST',
         headers: {
