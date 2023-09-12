@@ -149,7 +149,7 @@ function sendImageArrToService(imageElements) {
             body: JSON.stringify({images: imagesWithIndexes, imagesModel: userModel})
         }).then(response => {
             if (response.ok) {
-                return response.text();
+                return response;
             } else {
                 throw new Error('Failed to send image');
             }
