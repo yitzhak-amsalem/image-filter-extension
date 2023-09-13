@@ -149,12 +149,13 @@ function sendImageArrToService(imageElements) {
             body: JSON.stringify({images: imagesWithIndexes, imagesModel: userModel})
         }).then(response => {
             if (response.ok) {
-                return response;
+                return response.json();
             } else {
                 throw new Error('Failed to send image');
             }
-        }).then(responseText => {
-            console.log('Response:', responseText);
+        }).then(data => {
+            console.log('result:', data["result"]);
+            //getImages(data["result"])
         }).catch(error => {
             console.error('Error:', error);
         });
@@ -290,4 +291,27 @@ function imageUrlToFile(imageUrls) {
         });
 }
 
+function getImages(resultsImg){
+    resultsImg.forEach(img => {
+        const blob = base64toBlob(img, 'image/png');
+        const blobUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = blobUrl;
+        downloadLink.download = 'image.png'; // Set the desired filename
+        downloadLink.textContent = 'Download Image';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(downloadLink);
+    })
+}
+function base64toBlob(base64Data, contentType) {
+    const byteCharacters = atob(base64Data);
+    const arrayBuffer = new ArrayBuffer(byteCharacters.length);
+    const uint8Array = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        uint8Array[i] = byteCharacters.charCodeAt(i);
+    }
+    return new Blob([arrayBuffer], { type: contentType });
+}
 
