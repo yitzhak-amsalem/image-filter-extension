@@ -1,10 +1,10 @@
 {
-  "name": "WhatsApp Image Filter",
-  "description": "Filters images from WhatsApp web chats that include a given image.",
+  "name": "WhatsApp Photo Filter",
+  "description": "Filters photos from WhatsApp web chats that include a given image by popup.",
   "version": "1.0",
   "manifest_version": 3,
   "action": {
-    "default_title": "Filters images from WhatsApp web",
+    "default_title": "Filters photos from WhatsApp web",
     "default_popup": "popup.html"
   },
   "content_scripts": [
@@ -24,13 +24,5 @@
     "32": "icons/32.png",
     "48": "icons/48.png",
     "128": "icons/128.png"
-  },
-  "permissions": [
-    "activeTab",
-    "storage",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://web.whatsapp.com/*"
-  ]
+  }
 }

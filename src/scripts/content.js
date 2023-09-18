@@ -16,8 +16,11 @@ const observer = new MutationObserver((mutationsList) => {
 const observerConfig = {childList: true, subtree: true};
 observer.observe(document.body, observerConfig);
 
+const localPath = "http://127.0.0.1:5000";
+const prodPath = "https://face-detection-gw80.onrender.com";
 let userModel;
 let userData;
+let requestPath = localPath;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     const response = {result: undefined, modelFiles: undefined};
@@ -31,7 +34,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         if (userData) {
             response["result"] = 'Model exists';
             response["modelFiles"] = userData;
+            response["env"] = requestPath === prodPath;
         }
+    } else if (request.env) {
+        requestPath = request.env["env"] ? prodPath : localPath;
+        console.log("requestPath:" , requestPath)
+        response["result"] = "env sets.";
     }
     sendResponse(response);
 });
@@ -71,7 +79,7 @@ function createFilterButton(albumElement) {
 
 function onFilter(imageAlbumElement) {
     if (userModel) {
-        handleFiltering(imageAlbumElement);
+        handleFiltering(imageAlbumElement).then();
     } else {
         alert("Add face model by popup")
     }
@@ -141,7 +149,8 @@ function sendImageArrToService(imageElements) {
                 })
         )
     ).then(imagesWithIndexes => {
-        fetch('http://127.0.0.1:5000/upload-image', {
+        console.log(requestPath)
+        fetch(`${requestPath}/upload-image`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -154,8 +163,8 @@ function sendImageArrToService(imageElements) {
                 throw new Error('Failed to send image');
             }
         }).then(data => {
-            console.log('result:', data["result"]);
-            //getImages(data["result"])
+            console.log('result size:', data["result"].length);
+            getImages(data["result"])
         }).catch(error => {
             console.error('Error:', error);
         });
@@ -190,7 +199,6 @@ function createButtonElement(imageAlbumElement) {
     });
 
     return filterButton;
-
 }
 
 function arrayBufferToBase64(buffer) {
@@ -203,29 +211,30 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
+function getImages(resultsImg) {
+    resultsImg.forEach((img, index) => {
+        const blob = base64toBlob(img, 'image/png');
+        const blobUrl = URL.createObjectURL(blob);
+        downloadImage(blobUrl, index);
+        URL.revokeObjectURL(blobUrl);
+    })
+}
 
-function downloadImage(image) {
+function downloadImage(url, index) {
     const link = document.createElement('a');
-    link.href = image.src;
-    link.download = 'image.jpg';
+    link.href = url;
+    link.download = `image ${index}.jpg`;
     link.click();
 }
 
-function forwardImage(imageAlbumElement) {
-    const forward = imageAlbumElement.querySelector('[data-testid="forward-chat"]')
-    if (forward) {
-        console.log(forward)
-        forward.click();
-        setTimeout(() => {
-            //const popup = document.querySelector('[data-testid="chat-modal"]')
-            const element = document.querySelector('[data-testid="message-yourself-row"]');
-            element.click();
-        }, 1000)
-        setTimeout(() => {
-            const sendBtn = document.querySelector('[data-testid="send"]')
-            sendBtn.click();
-        }, 1000)
+function base64toBlob(base64Data, contentType) {
+    const byteCharacters = atob(base64Data);
+    const arrayBuffer = new ArrayBuffer(byteCharacters.length);
+    const uint8Array = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        uint8Array[i] = byteCharacters.charCodeAt(i);
     }
+    return new Blob([arrayBuffer], {type: contentType});
 }
 
 function imageToFile(image) {
@@ -244,26 +253,6 @@ function imageToFile(image) {
         byteArrays.push(byteCharacters.charCodeAt(i));
     }
     return new Blob([new Uint8Array(byteArrays)], {type: 'image/png'})
-}
-
-function send(imagesWithIndexes) {
-    fetch('http://127.0.0.1:5000/upload2', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({images: imagesWithIndexes})
-    }).then(response => {
-        if (response.ok) {
-            return response.text();
-        } else {
-            throw new Error('Failed to send image');
-        }
-    }).then(responseText => {
-        console.log('Response:', responseText);
-    }).catch(error => {
-        console.error('Error:', error);
-    });
 }
 
 function imageUrlToFile(imageUrls) {
@@ -290,28 +279,3 @@ function imageUrlToFile(imageUrls) {
                 });
         });
 }
-
-function getImages(resultsImg){
-    resultsImg.forEach(img => {
-        const blob = base64toBlob(img, 'image/png');
-        const blobUrl = URL.createObjectURL(blob);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = blobUrl;
-        downloadLink.download = 'image.png'; // Set the desired filename
-        downloadLink.textContent = 'Download Image';
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(downloadLink);
-    })
-}
-function base64toBlob(base64Data, contentType) {
-    const byteCharacters = atob(base64Data);
-    const arrayBuffer = new ArrayBuffer(byteCharacters.length);
-    const uint8Array = new Uint8Array(arrayBuffer);
-    for (let i = 0; i < byteCharacters.length; i++) {
-        uint8Array[i] = byteCharacters.charCodeAt(i);
-    }
-    return new Blob([arrayBuffer], { type: contentType });
-}
-
