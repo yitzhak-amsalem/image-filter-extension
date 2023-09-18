@@ -58,18 +58,6 @@ const scanChatForAlbums = (conversationPanelWrapper) => {
     return waitForNodes(conversationPanelWrapper, msgSelectorAll);
 }
 
-const waitForNodes = (parentNode, selector) => {
-    return new Promise((resolve, reject) => {
-        const interval = setInterval(() => {
-            const element = parentNode.querySelectorAll(selector);
-            if (element) {
-                clearInterval(interval);
-                resolve(element);
-            }
-        }, 1000);
-    });
-}
-
 function createFilterButton(albumElement) {
     const filterButton = createButtonElement(albumElement);
     if (albumElement) {
@@ -90,52 +78,6 @@ async function handleFiltering(imageAlbumElement) {
     closeWindow();
     console.log("images length:", imgElements.length)
     sendImageArrToService(imgElements);
-}
-
-async function extractImageFiles(imageAlbumElement) {
-    const imgElements = [];
-    const albumSize = parseAlbumSize(imageAlbumElement);
-    const buttonSelector = imageAlbumElement.querySelectorAll('[role="button"]');
-    buttonSelector[0].ariaLabel.includes("פרטי הצ'אט") ? buttonSelector[1].click() : buttonSelector[0].click();
-    getCurrentImg(imgElements);
-    await sleep(550)
-    const nextButton = document.body.querySelector('[aria-label="הבא"][role="button"]');
-    for (let i = 1; i < albumSize; i++) {
-        nextButton.click();
-        getCurrentImg(imgElements);
-        await sleep(550)
-    }
-    return imgElements;
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function parseAlbumSize(imageAlbumElement) {
-    const albumId = imageAlbumElement.getAttribute('data-id');
-    const albumIdParts = albumId.split('-');
-    const lastPart = albumIdParts[albumIdParts.length - 1];
-    const match = lastPart.match(/\d+/);
-    if (match) {
-        return parseInt(match[0]);
-    } else {
-        console.log("No number found.");
-    }
-}
-
-function getCurrentImg(imgElements) {
-    setTimeout(() => {
-        const currentImgElement = document.body.querySelector('[role="img"]');
-        if (currentImgElement) {
-            const imgSrc = currentImgElement.querySelectorAll("img")[1]
-            imgElements.push(imgSrc);
-        }
-    }, 500);
-}
-
-function closeWindow() {
-    document.body.querySelector('[aria-label="סגירה"][role="button"]').click();
 }
 
 function sendImageArrToService(imageElements) {
@@ -170,6 +112,65 @@ function sendImageArrToService(imageElements) {
         });
     });
 }
+
+async function extractImageFiles(imageAlbumElement) {
+    const imgElements = [];
+    const albumSize = parseAlbumSize(imageAlbumElement);
+    const buttonSelector = imageAlbumElement.querySelectorAll('[role="button"]');
+    buttonSelector[0].ariaLabel.includes("פרטי הצ'אט") ? buttonSelector[1].click() : buttonSelector[0].click();
+    getCurrentImg(imgElements);
+    await sleep(550)
+    const nextButton = document.body.querySelector('[aria-label="הבא"][role="button"]');
+    for (let i = 1; i < albumSize; i++) {
+        nextButton.click();
+        getCurrentImg(imgElements);
+        await sleep(550)
+    }
+    return imgElements;
+}
+
+const waitForNodes = (parentNode, selector) => {
+    return new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+            const element = parentNode.querySelectorAll(selector);
+            if (element) {
+                clearInterval(interval);
+                resolve(element);
+            }
+        }, 1000);
+    });
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function parseAlbumSize(imageAlbumElement) {
+    const albumId = imageAlbumElement.getAttribute('data-id');
+    const albumIdParts = albumId.split('-');
+    const lastPart = albumIdParts[albumIdParts.length - 1];
+    const match = lastPart.match(/\d+/);
+    if (match) {
+        return parseInt(match[0]);
+    } else {
+        console.log("No number found.");
+    }
+}
+
+function getCurrentImg(imgElements) {
+    setTimeout(() => {
+        const currentImgElement = document.body.querySelector('[role="img"]');
+        if (currentImgElement) {
+            const imgSrc = currentImgElement.querySelectorAll("img")[1]
+            imgElements.push(imgSrc);
+        }
+    }, 500);
+}
+
+function closeWindow() {
+    document.body.querySelector('[aria-label="סגירה"][role="button"]').click();
+}
+
 
 function createButtonElement(imageAlbumElement) {
     const filterButton = document.createElement("button");
