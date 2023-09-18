@@ -1,8 +1,10 @@
 import React, {useState, useEffect} from 'react';
+import "./popup.css"
 
 function App() {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [success, setSuccess] = useState(false);
+    const [runEnv, setRunEnv] = useState(false);
 
     useEffect(() => {
         chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
@@ -10,18 +12,33 @@ function App() {
                 if (response["result"] !== undefined) {
                     console.log(response["result"]);
                     const files = response["modelFiles"];
+                    const env = response["env"];
                     setSelectedFiles(files)
                     setSuccess(true)
+                    setRunEnv(env)
                 } else {
-                    console.log('No model yet');
+                    console.log('No model yet.');
                 }
             });
         });
     }, [])
 
+    useEffect(() => {
+        const envSetting = {"env": runEnv};
+        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {env: envSetting}, function (response) {
+                if (response["result"] !== undefined) {
+                    console.log("Set env success.")
+                } else {
+                    console.log('Set env error.');
+                }
+            });
+        });
+    }, [runEnv])
+
+
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
-        //const imageUrls = files.map((file) => URL.createObjectURL(file));
         const imagePromises = files.map((file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -46,7 +63,7 @@ function App() {
                     console.log(response["result"]);
                     setSuccess(true)
                 } else {
-                    console.log('Error! No response from content script');
+                    console.log('Error! No response from content script.');
                 }
             });
         });
@@ -108,12 +125,24 @@ function App() {
                                 button.style.cursor = "pointer";
                             }}
                                     onMouseOut={() => {
-                                const button = document.getElementById("change-button")
-                                button.style.backgroundColor = "#cffdaa";
-                                button.style.transition = 'background-color 0.5s';
-                            }} onClick={() => setSuccess(false)}>
+                                        const button = document.getElementById("change-button")
+                                        button.style.backgroundColor = "#cffdaa";
+                                        button.style.transition = 'background-color 0.5s';
+                                    }} onClick={() => setSuccess(false)}>
                                 Change Model
                             </button>
+                            <div style={{margin: "10px"}}>
+                                Set Run Environment:
+                                <div style={{margin: "5px"}}>
+                                    <label className="switch">
+                                        <input type="checkbox"
+                                               onClick={() => setRunEnv(!runEnv)}
+                                               />
+                                        <span className="slider round"></span>
+                                    </label>
+                                </div>
+                                {runEnv ? "PROD" : "LOCAL"}
+                            </div>
                         </div>
                         :
                         <div>
@@ -160,11 +189,11 @@ function App() {
                                 }
                             }}
                                     onMouseOut={() => {
-                                const button = document.getElementById("save-button")
-                                button.style.backgroundColor = "#cffdaa";
-                                button.style.transition = 'background-color 0.5s';
-                                button.style.cursor = "default";
-                            }} disabled={selectedFiles.length === 0} onClick={saveImages}>
+                                        const button = document.getElementById("save-button")
+                                        button.style.backgroundColor = "#cffdaa";
+                                        button.style.transition = 'background-color 0.5s';
+                                        button.style.cursor = "default";
+                                    }} disabled={selectedFiles.length === 0} onClick={saveImages}>
                                 Save Face Model
                             </button>
                         </div>
