@@ -17,7 +17,7 @@ const observerConfig = {childList: true, subtree: true};
 observer.observe(document.body, observerConfig);
 
 const localPath = "http://127.0.0.1:5000";
-const prodPath = "https://face-detection-gw80.onrender.com";
+const prodPath = "https://filter-service-fgue.onrender.com";
 let userModel;
 let userData;
 let requestPath = localPath;
@@ -25,15 +25,12 @@ let requestPath = localPath;
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     const response = {result: undefined, modelFiles: undefined};
     if (request.data) {
-        userModel = request.data["model"].map((image, index) => {
-            return {index, "image": image.split(",")[1]};
-        });
-        userData = request.data["model"];
+        userModel = request.data["model"];
         response["result"] = 'Images saved successfully';
     } else if (request.ping) {
-        if (userData) {
+        if (userModel) {
             response["result"] = 'Model exists';
-            response["modelFiles"] = userData;
+            response["modelFiles"] = userModel;
             response["env"] = requestPath === prodPath;
         }
     } else if (request.env) {
@@ -53,7 +50,7 @@ function onNewChatOpened(conversationPanelWrapper) {
     })
 }
 
-const scanChatForAlbums = (conversationPanelWrapper) => {
+function scanChatForAlbums(conversationPanelWrapper) {
     const msgSelectorAll = '[data-id^="album-true"], [data-id^="album-false"]';
     return waitForNodes(conversationPanelWrapper, msgSelectorAll);
 }
@@ -62,14 +59,6 @@ function createFilterButton(albumElement) {
     const filterButton = createButtonElement(albumElement);
     if (albumElement) {
         albumElement.appendChild(filterButton)
-    }
-}
-
-function onFilter(imageAlbumElement) {
-    if (userModel) {
-        handleFiltering(imageAlbumElement).then();
-    } else {
-        alert("Add face model by popup")
     }
 }
 
@@ -82,22 +71,22 @@ async function handleFiltering(imageAlbumElement) {
 
 function sendImageArrToService(imageElements) {
     Promise.all(
-        imageElements.map((img, index) =>
+        imageElements.map(img =>
             fetch(img.src)
                 .then(response => response.arrayBuffer())
                 .then(buffer => {
                     const base64Image = arrayBufferToBase64(buffer);
-                    return {index, image: base64Image};
+                    return {base64Image};
                 })
         )
-    ).then(imagesWithIndexes => {
+    ).then(imagesBase64 => {
         console.log(requestPath)
-        fetch(`${requestPath}/upload-image`, {
+        fetch(`${requestPath}/filter`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({images: imagesWithIndexes, imagesModel: userModel})
+            body: JSON.stringify({images: imagesBase64, imagesModel: userModel})
         }).then(response => {
             if (response.ok) {
                 return response.json();
@@ -106,11 +95,35 @@ function sendImageArrToService(imageElements) {
             }
         }).then(data => {
             console.log('result size:', data["result"].length);
-            getImages(data["result"])
+            handleResponse(data["result"])
         }).catch(error => {
             console.error('Error:', error);
         });
     });
+}
+
+function handleResponse(resultsImg) {
+    resultsImg.forEach((img, index) => {
+        const blob = base64toBlob(img, 'image/png');
+        const blobUrl = URL.createObjectURL(blob);
+        downloadImage(blobUrl, index);
+        URL.revokeObjectURL(blobUrl);
+    })
+}
+
+function downloadImage(url, index) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `image ${index}.jpg`;
+    link.click();
+}
+
+function onFilter(imageAlbumElement) {
+    if (userModel) {
+        handleFiltering(imageAlbumElement).then();
+    } else {
+        alert("Add face model by popup")
+    }
 }
 
 async function extractImageFiles(imageAlbumElement) {
@@ -137,7 +150,7 @@ const waitForNodes = (parentNode, selector) => {
                 clearInterval(interval);
                 resolve(element);
             }
-        }, 1000);
+        }, 1200);
     });
 }
 
@@ -170,7 +183,6 @@ function getCurrentImg(imgElements) {
 function closeWindow() {
     document.body.querySelector('[aria-label="סגירה"][role="button"]').click();
 }
-
 
 function createButtonElement(imageAlbumElement) {
     const filterButton = document.createElement("button");
@@ -210,22 +222,6 @@ function arrayBufferToBase64(buffer) {
         binary += String.fromCharCode(bytes[i]);
     }
     return window.btoa(binary);
-}
-
-function getImages(resultsImg) {
-    resultsImg.forEach((img, index) => {
-        const blob = base64toBlob(img, 'image/png');
-        const blobUrl = URL.createObjectURL(blob);
-        downloadImage(blobUrl, index);
-        URL.revokeObjectURL(blobUrl);
-    })
-}
-
-function downloadImage(url, index) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `image ${index}.jpg`;
-    link.click();
 }
 
 function base64toBlob(base64Data, contentType) {
