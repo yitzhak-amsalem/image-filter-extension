@@ -76,7 +76,7 @@ function sendImageArrToService(imageElements) {
                 .then(response => response.arrayBuffer())
                 .then(buffer => {
                     const base64Image = arrayBufferToBase64(buffer);
-                    return {base64Image};
+                    return base64Image;
                 })
         )
     ).then(imagesBase64 => {
