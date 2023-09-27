@@ -75,8 +75,7 @@ function sendImageArrToService(imageElements) {
             fetch(img.src)
                 .then(response => response.arrayBuffer())
                 .then(buffer => {
-                    const base64Image = arrayBufferToBase64(buffer);
-                    return base64Image;
+                    return arrayBufferToBase64(buffer);
                 })
         )
     ).then(imagesBase64 => {
@@ -232,47 +231,4 @@ function base64toBlob(base64Data, contentType) {
         uint8Array[i] = byteCharacters.charCodeAt(i);
     }
     return new Blob([arrayBuffer], {type: contentType});
-}
-
-function imageToFile(image) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = image.width;
-    canvas.height = image.height;
-    context.drawImage(image, 0, 0);
-
-    const dataURL = canvas.toDataURL('image/png');
-    const imageData = dataURL.replace(/^data:image\/(png|jpeg);base64,/, '');
-
-    const byteCharacters = atob(imageData);
-    const byteArrays = [];
-    for (let i = 0; i < byteCharacters.length; i++) {
-        byteArrays.push(byteCharacters.charCodeAt(i));
-    }
-    return new Blob([new Uint8Array(byteArrays)], {type: 'image/png'})
-}
-
-function imageUrlToFile(imageUrls) {
-    fetch(imageUrls)
-        .then(response => response.arrayBuffer())
-        .then(buffer => {
-            // Convert the ArrayBuffer to a Base64 string
-            const base64Image = arrayBufferToBase64(buffer);
-
-            // Send the Base64-encoded image to the server using a POST request
-            fetch('http://127.0.0.1:5000/upload1', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({image: base64Image})
-            })
-                .then(response => {
-                    // Handle the response from the server
-                    console.log('Image uploaded successfully');
-                })
-                .catch(error => {
-                    console.error('Error uploading image:', error);
-                });
-        });
 }
