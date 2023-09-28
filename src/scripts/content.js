@@ -19,24 +19,28 @@ observer.observe(document.body, observerConfig);
 const localPath = "http://127.0.0.1:5000";
 const prodPath = "https://filter-service-fgue.onrender.com";
 let userModel;
-let userData;
+let normalThreshold = 0.6;
+let distance = normalThreshold;
 let requestPath = localPath;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    const response = {result: undefined, modelFiles: undefined};
-    if (request.data) {
-        userModel = request.data["model"];
-        response["result"] = 'Images saved successfully';
+    const response = {modelExists: undefined, modelFiles: undefined, env: undefined, dis: undefined};
+    if (request.model) {
+        userModel = request.model["model"];
+        response["modelSaved"] = 'Images saved successfully';
+    //} else if (request.env) {
+        //requestPath = request.env["env"] ? prodPath : localPath;
+        //response["envResults"] = "env sets.";
+    } else if (request.dis) {
+        distance = (normalThreshold - request.dis["dis"]);
+        response["disResults"] = "dis sets.";
     } else if (request.ping) {
         if (userModel) {
-            response["result"] = 'Model exists';
+            response["modelExists"] = 'Model exists';
             response["modelFiles"] = userModel;
             response["env"] = requestPath === prodPath;
+            response["dis"] = (normalThreshold - distance);
         }
-    } else if (request.env) {
-        requestPath = request.env["env"] ? prodPath : localPath;
-        console.log("requestPath:" , requestPath)
-        response["result"] = "env sets.";
     }
     sendResponse(response);
 });
@@ -79,13 +83,13 @@ function sendImageArrToService(imageElements) {
                 })
         )
     ).then(imagesBase64 => {
-        console.log(requestPath)
+        console.log("path:", requestPath, "dis:", distance)
         fetch(`${requestPath}/filter`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({images: imagesBase64, imagesModel: userModel})
+            body: JSON.stringify({images: imagesBase64, imagesModel: userModel, distance: distance})
         }).then(response => {
             if (response.ok) {
                 return response.json();

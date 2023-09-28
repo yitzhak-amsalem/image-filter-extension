@@ -1,7 +1,7 @@
 {
   "name": "WhatsApp Photo Filter",
   "description": "Filters photos from WhatsApp web chats that include a given image by popup.",
-  "version": "1.2",
+  "version": "1.4",
   "manifest_version": 3,
   "action": {
     "default_title": "Filters photos from WhatsApp web",

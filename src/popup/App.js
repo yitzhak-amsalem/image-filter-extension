@@ -4,38 +4,28 @@ import "./popup.css"
 function App() {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [success, setSuccess] = useState(false);
-    const [runEnv, setRunEnv] = useState(false);
+    //const [runEnv, setRunEnv] = useState(false);
+    const [distance, setDistance] = useState(0)
 
     useEffect(() => {
         chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
             chrome.tabs.sendMessage(tabs[0].id, {ping: "model_exists"}, function (response) {
-                if (response["result"] !== undefined) {
-                    console.log(response["result"]);
+                if (response["modelExists"] !== undefined) {
+                    console.log(response["modelExists"]);
                     const files = response["modelFiles"];
-                    const env = response["env"];
+                    //const env = response["env"];
+                    const dis = response["dis"];
                     setSelectedFiles(files)
                     setSuccess(true)
-                    setRunEnv(env)
+                    //setRunEnv(env)
+                    setDistance(dis)
+                    console.log(dis)
                 } else {
                     console.log('No model yet.');
                 }
             });
         });
     }, [])
-
-    useEffect(() => {
-        const envSetting = {"env": runEnv};
-        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, {env: envSetting}, function (response) {
-                if (response["result"] !== undefined) {
-                    console.log("Set env success.")
-                } else {
-                    console.log('Set env error.');
-                }
-            });
-        });
-    }, [runEnv])
-
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
@@ -48,20 +38,32 @@ function App() {
                 reader.readAsDataURL(file);
             });
         });
-
         Promise.all(imagePromises).then((base64Images) => {
             setSelectedFiles(base64Images);
         });
     };
 
     const saveImages = () => {
-        setSuccess(true)
         chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
             const dataToSend = {"model": selectedFiles};
-            chrome.tabs.sendMessage(tabs[0].id, {data: dataToSend}, function (response) {
-                if (response["result"] !== undefined) {
-                    console.log(response["result"]);
+            chrome.tabs.sendMessage(tabs[0].id, {model: dataToSend}, function (response) {
+                if (response["modelSaved"] !== undefined) {
+                    console.log(response["modelSaved"]);
                     setSuccess(true)
+                } else {
+                    console.log('Error! No response from content script.');
+                }
+            });
+        });
+    }
+
+    const sendDis = (disInput) => {
+        setDistance(disInput)
+        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
+            const dis = {"dis": disInput};
+            chrome.tabs.sendMessage(tabs[0].id, {dis: dis}, function (response) {
+                if (response["disResults"] !== undefined) {
+                    console.log(response["disResults"]);
                 } else {
                     console.log('Error! No response from content script.');
                 }
@@ -132,6 +134,20 @@ function App() {
                                 Change Model
                             </button>
                             <div style={{margin: "10px"}}>
+                                Set Accuracy:
+                                <div style={{margin: "5px"}}>
+                                    <label>
+                                        <input type="range" min={-0.15} max={0.15} step={0.01} value={distance}
+                                        style={{width: "120px", margin: "5px 7px 5px 7px", cursor: "pointer"}}
+                                               onInput={(v) => {
+                                                   sendDis(v.target.value)
+                                               }}
+                                        />
+                                        <div style={{margin: "5px"}}>{distance === 0 ? "Normal" : distance > 0 ? "High" : "Low"}</div>
+                                    </label>
+                                </div>
+                            </div>
+                           {/* <div style={{margin: "10px"}}>
                                 Set Run Environment:
                                 <div style={{margin: "5px"}}>
                                     <label className="switch">
@@ -142,7 +158,7 @@ function App() {
                                     </label>
                                 </div>
                                 {runEnv ? "PROD" : "LOCAL"}
-                            </div>
+                            </div>*/}
                         </div>
                         :
                         <div>
